@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>观星助手 · 星星查询</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+    background-color: #0a0f2e;
+    background-image:
+      radial-gradient(1.5px 1.5px at 15% 18%, rgba(255,255,255,.5), transparent),
+      radial-gradient(1px 1px at 72% 8%, rgba(255,255,255,.4), transparent),
+      radial-gradient(1.5px 1.5px at 88% 32%, rgba(255,255,255,.35), transparent),
+      radial-gradient(1px 1px at 38% 58%, rgba(255,255,255,.3), transparent),
+      radial-gradient(1.5px 1.5px at 8% 78%, rgba(255,255,255,.25), transparent),
+      radial-gradient(1px 1px at 62% 88%, rgba(255,255,255,.3), transparent),
+      radial-gradient(ellipse at top, #1b2458 0%, #0a0f2e 62%);
+    background-attachment: fixed;
+    color: #eef1ff;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 16px 14px 70px; }
+  header { text-align: center; padding: 16px 0 4px; }
+  header h1 { font-size: 27px; letter-spacing: 2px; }
+  header p { color: #9aa3c7; font-size: 13px; margin-top: 5px; }
+  .lucky { text-align: center; margin: 12px 0 4px; }
+  button {
+    background: #ffd166; border: none; color: #241f00; border-radius: 12px;
+    padding: 11px 18px; font-size: 15px; font-weight: 600; cursor: pointer;
+  }
+  button:active { transform: scale(0.97); }
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin: 14px 0; }
+  .tab {
+    border: 1px solid #2c3563; background: #12173a; color: #eef1ff;
+    border-radius: 999px; padding: 9px 15px; font-size: 14px;
+  }
+  .tab.active { background: #4a5cbf; border-color: #4a5cbf; color: #fff; font-weight: 600; }
+  .search-box { display: flex; gap: 8px; margin-bottom: 14px; }
+  input[type=text] {
+    flex: 1; padding: 12px 14px; border-radius: 12px; border: 1px solid #2c3563;
+    background: #12173a; color: #eef1ff; font-size: 16px; min-width: 0;
+  }
+  input:focus { outline: 2px solid #ffd166; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .chip {
+    border: 1px solid #2c3563; background: #12173a; border-radius: 999px;
+    padding: 8px 14px; font-size: 14px; color: #eef1ff; cursor: pointer;
+  }
+  .chip.active { background: #4a5cbf; border-color: #4a5cbf; }
+  .card { background: #161d42; border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; border: 1px solid #232a54; }
+  .card .top { display: flex; align-items: center; gap: 10px; }
+  .dot { width: 14px; height: 14px; border-radius: 50%; box-shadow: 0 0 10px currentColor; flex: none; }
+  .card h2 { font-size: 19px; display: inline; margin-right: 8px; }
+  .card .en { color: #9aa3c7; font-size: 13px; }
+  .meta { margin-top: 7px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag { background: #232a54; border-radius: 8px; padding: 4px 10px; font-size: 12px; color: #cdd4f5; }
+  .desc { margin-top: 10px; font-size: 14px; line-height: 1.65; color: #cdd4f5; }
+  .row {
+    background: #161d42; border: 1px solid #232a54; border-radius: 12px;
+    padding: 11px 14px; margin-bottom: 8px; cursor: pointer;
+  }
+  .row:active { background: #1d2650; }
+  .rank {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 50%; background: #232a54;
+    font-size: 13px; margin-right: 10px;
+  }
+  .rank.top1 { background: #ffd166; color: #241f00; font-weight: 700; }
+  .rank.top2 { background: #c7d2fe; color: #1a2140; font-weight: 700; }
+  .rank.top3 { background: #f4a261; color: #241f00; font-weight: 700; }
+  .back {
+    background: #232a54; color: #cdd4f5; border-radius: 10px; padding: 9px 14px;
+    margin-bottom: 12px; font-size: 14px;
+  }
+  #map, #skyCanvas { width: 100%; border-radius: 14px; display: block; border: 1px solid #232a54; }
+  #skyCanvas { background: #05081c; touch-action: none; cursor: grab; }
+  .legend { font-size: 12px; color: #9aa3c7; text-align: center; margin-top: 8px; line-height: 1.6; }
+  .hint { text-align: center; color: #9aa3c7; font-size: 13px; margin: 18px 0; }
+  footer { text-align: center; color: #5f6a99; font-size: 12px; margin-top: 24px; line-height: 1.7; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>✦ 观星助手</h1>
+    <p>内置 30 颗著名恒星 · 支持 360° 星空 / AR 实景 / 定位可见性</p>
+  </header>
+
+  <div class="lucky"><button id="luckyBtn">🎲 随机看一颗星</button></div>
+
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-view="search">🔍 搜索</button>
+    <button class="tab" data-view="constellation">♈ 星座</button>
+    <button class="tab" data-view="season">🌙 季节</button>
+    <button class="tab" data-view="rank">🏆 排行</button>
+    <button class="tab" data-view="all">📖 全部</button>
+    <button class="tab" data-view="sky">🌌 星空</button>
+    <button class="tab" data-view="map">🗺️ 星图</button>
+  </div>
+
+  <div id="content"></div>
+  <footer>观星助手 v2.0 · 数据为近似真实值 · AR 为方向叠加，不做照片识别</footer>
+</div>
+
+<script id="app-data">
+// ================= 星表数据 =================
+var STARS = [
+  {name: "Sun", cn: "太阳", constellation: "Solar System", cnConst: "太阳系",
+   mag: -26.74, distLy: 0.000016, spectral: "G2V", season: "白天",
+   raH: null, dec: null, isSun: true,
+   desc: "离我们最近的恒星！距地球约 1.5 亿千米，光只需走 8 分 20 秒。地球上所有生命的能量来源。"},
+
+  {name: "Sirius", cn: "天狼星", constellation: "Canis Major", cnConst: "大犬座",
+   mag: -1.46, distLy: 8.6, spectral: "A1V", season: "冬季", raH: 6.75, dec: -16.7,
+   desc: "夜空中最亮的恒星，距地球仅 8.6 光年，是太阳的近邻，冬季大三角的顶点之一。"},
+
+  {name: "Canopus", cn: "老人星", constellation: "Carina", cnConst: "船底座",
+   mag: -0.74, distLy: 310, spectral: "A9II", season: "南天", raH: 6.40, dec: -52.7,
+   desc: "全天第二亮星，我国南方低空才能看到。古代航海用它导航，被视为南极仙翁的化身。"},
+
+  {name: "Arcturus", cn: "大角星", constellation: "Bootes", cnConst: "牧夫座",
+   mag: -0.05, distLy: 37, spectral: "K1.5III", season: "春季", raH: 14.27, dec: 19.2,
+   desc: "北天最亮星，一颗橙色巨星，直径约为太阳的 25 倍。"},
+
+  {name: "Vega", cn: "织女星", constellation: "Lyra", cnConst: "天琴座",
+   mag: 0.03, distLy: 25, spectral: "A0V", season: "夏季", raH: 18.62, dec: 38.8,
+   desc: "夏季大三角之一，七夕传说中牛郎织女的主角。约 1.2 万年前它曾是北极星。"},
+
+  {name: "Capella", cn: "五车二", constellation: "Auriga", cnConst: "御夫座",
+   mag: 0.08, distLy: 43, spectral: "G8III", season: "冬季", raH: 5.28, dec: 46.0,
+   desc: "御夫座最亮星，实际是由两对双星组成的四星系统。"},
+
+  {name: "Rigel", cn: "参宿七", constellation: "Orion", cnConst: "猎户座",
+   mag: 0.13, distLy: 860, spectral: "B8I", season: "冬季", raH: 5.24, dec: -8.2,
+   desc: "猎户座最亮星，蓝色超巨星，亮度约为太阳的 12 万倍。"},
+
+  {name: "Procyon", cn: "南河三", constellation: "Canis Minor", cnConst: "小犬座",
+   mag: 0.34, distLy: 11.5, spectral: "F5IV", season: "冬季", raH: 7.65, dec: 5.2,
+   desc: "冬季大三角之一，距离我们只有 11.5 光年，有一颗白矮星伴星。"},
+
+  {name: "Betelgeuse", cn: "参宿四", constellation: "Orion", cnConst: "猎户座",
+   mag: 0.42, distLy: 640, spectral: "M1-2I", season: "冬季", raH: 5.92, dec: 7.4,
+   desc: "著名的红色超巨星，体积约为太阳的 10 亿倍，未来会以超新星爆发结束生命。"},
+
+  {name: "Achernar", cn: "水委一", constellation: "Eridanus", cnConst: "波江座",
+   mag: 0.46, distLy: 139, spectral: "B6V", season: "南天", raH: 1.63, dec: -57.2,
+   desc: "全天最扁的恒星之一，因为自转极快，赤道被甩成了扁球状。"},
+
+  {name: "Altair", cn: "牛郎星", constellation: "Aquila", cnConst: "天鹰座",
+   mag: 0.76, distLy: 16.7, spectral: "A7V", season: "夏季", raH: 19.85, dec: 8.9,
+   desc: "夏季大三角之一，与织女星隔银河相望。自转极快，7 个多小时就转一圈。"},
+
+  {name: "Aldebaran", cn: "毕宿五", constellation: "Taurus", cnConst: "金牛座",
+   mag: 0.86, distLy: 65, spectral: "K5III", season: "冬季", raH: 4.60, dec: 16.5,
+   desc: "金牛座的红眼睛，橙色巨星，位于著名的毕星团方向。"},
+
+  {name: "Antares", cn: "心宿二", constellation: "Scorpius", cnConst: "天蝎座",
+   mag: 0.96, distLy: 550, spectral: "M1.5I", season: "夏季", raH: 16.48, dec: -26.4,
+   desc: "天蝎座的心脏，红色超巨星。名字 Antares 意为火星的对手，因为颜色像火星。"},
+
+  {name: "Spica", cn: "角宿一", constellation: "Virgo", cnConst: "室女座",
+   mag: 0.98, distLy: 250, spectral: "B1V", season: "春季", raH: 13.42, dec: -11.2,
+   desc: "室女座最亮星，蓝白色恒星，实际是一对靠得很近的双星。"},
+
+  {name: "Pollux", cn: "北河三", constellation: "Gemini", cnConst: "双子座",
+   mag: 1.14, distLy: 34, spectral: "K0III", season: "冬季", raH: 7.75, dec: 28.0,
+   desc: "双子座最亮星，橙色巨星，已确认它身边有一颗行星。"},
+
+  {name: "Fomalhaut", cn: "北落师门", constellation: "Piscis Austrinus", cnConst: "南鱼座",
+   mag: 1.16, distLy: 25, spectral: "A3V", season: "秋季", raH: 22.97, dec: -29.6,
+   desc: "秋季南天孤独的亮星，周围有著名的尘埃环，是人类拍到系外行星的首批恒星之一。"},
+
+  {name: "Deneb", cn: "天津四", constellation: "Cygnus", cnConst: "天鹅座",
+   mag: 1.25, distLy: 1600, spectral: "A2I", season: "夏季", raH: 20.68, dec: 45.3,
+   desc: "夏季大三角之一，白色超巨星，亮度约为太阳的 20 万倍，距离我们约 1600 光年。"},
+
+  {name: "Regulus", cn: "轩辕十四", constellation: "Leo", cnConst: "狮子座",
+   mag: 1.35, distLy: 79, spectral: "B8IV", season: "春季", raH: 10.13, dec: 12.0,
+   desc: "狮子座的心脏，蓝白色恒星，自转极快，形状略扁。"},
+
+  {name: "Castor", cn: "北河二", constellation: "Gemini", cnConst: "双子座",
+   mag: 1.58, distLy: 51, spectral: "A1V", season: "冬季", raH: 7.58, dec: 31.9,
+   desc: "双子座另一颗亮星，看似一颗星，实际是由 6 颗恒星组成的复杂系统。"},
+
+  {name: "Bellatrix", cn: "参宿五", constellation: "Orion", cnConst: "猎户座",
+   mag: 1.64, distLy: 250, spectral: "B2III", season: "冬季", raH: 5.42, dec: 6.3,
+   desc: "猎户座的一颗蓝白色巨星，位于猎户的右肩。"},
+
+  {name: "Alnilam", cn: "参宿二", constellation: "Orion", cnConst: "猎户座",
+   mag: 1.69, distLy: 1300, spectral: "B0I", season: "冬季", raH: 5.60, dec: -1.2,
+   desc: "猎户座腰带三星之一（中间那颗），蓝色超巨星，是腰带里最亮的一颗。"},
+
+  {name: "Alnitak", cn: "参宿一", constellation: "Orion", cnConst: "猎户座",
+   mag: 1.77, distLy: 800, spectral: "O9.5I", season: "冬季", raH: 5.68, dec: -1.9,
+   desc: "猎户座腰带三星之一，罕见的 O 型超巨星，旁边有著名的马头星云。"},
+
+  {name: "Alioth", cn: "玉衡", constellation: "Ursa Major", cnConst: "大熊座",
+   mag: 1.77, distLy: 83, spectral: "A0p", season: "春季", raH: 12.90, dec: 56.0,
+   desc: "北斗七星中最亮的一颗，位于斗柄上。"},
+
+  {name: "Dubhe", cn: "天枢", constellation: "Ursa Major", cnConst: "大熊座",
+   mag: 1.79, distLy: 123, spectral: "K0III", season: "春季", raH: 11.07, dec: 61.8,
+   desc: "北斗七星斗口的第一颗，与天璇连线向外延伸就能找到北极星。"},
+
+  {name: "Alkaid", cn: "摇光", constellation: "Ursa Major", cnConst: "大熊座",
+   mag: 1.86, distLy: 104, spectral: "B3V", season: "春季", raH: 13.80, dec: 49.3,
+   desc: "北斗七星斗柄最末端的一颗，古称破军。"},
+
+  {name: "Polaris", cn: "北极星", constellation: "Ursa Minor", cnConst: "小熊座",
+   mag: 1.98, distLy: 433, spectral: "F7Ib", season: "全年", raH: 2.53, dec: 89.3,
+   desc: "小熊座最亮星，正好在地球自转轴方向附近，位置几乎不动，古人靠它辨别北方。"},
+
+  {name: "Kochab", cn: "北极二", constellation: "Ursa Minor", cnConst: "小熊座",
+   mag: 2.08, distLy: 131, spectral: "K4III", season: "全年", raH: 14.85, dec: 74.2,
+   desc: "小熊座第二亮星，几千年前它也曾担任过北极星。"},
+
+  {name: "Algol", cn: "大陵五", constellation: "Perseus", cnConst: "英仙座",
+   mag: 2.1, distLy: 90, spectral: "B8V", season: "秋季", raH: 3.13, dec: 41.0,
+   desc: "著名的恶魔之星，亮度每 2.87 天周期性变暗，是最早被发现的食变星。"},
+
+  {name: "Mizar", cn: "开阳", constellation: "Ursa Major", cnConst: "大熊座",
+   mag: 2.23, distLy: 83, spectral: "A2V", season: "春季", raH: 13.40, dec: 54.9,
+   desc: "北斗七星之一，和旁边的辅组成著名的目视双星，古代用它测试视力。"},
+
+  {name: "Mintaka", cn: "参宿三", constellation: "Orion", cnConst: "猎户座",
+   mag: 2.23, distLy: 900, spectral: "B0III", season: "冬季", raH: 5.53, dec: -0.3,
+   desc: "猎户座腰带三星之一（最西边那颗），与另外两颗排成一条直线。"}
+];
+
+// ================= 纯逻辑函数 =================
+var COLOR_NAME = {O: "蓝色", B: "蓝白色", A: "白色", F: "黄白色", G: "黄色", K: "橙色", M: "红色"};
+var COLOR_HEX  = {O: "#9bb0ff", B: "#aabfff", A: "#cad7ff", F: "#f8f7ff", G: "#fff4ea", K: "#ffd2a1", M: "#ffcc6f"};
+
+function colorOf(sp) {
+  var first = String(sp).charAt(0);
+  return { name: COLOR_NAME[first] || "未知", hex: COLOR_HEX[first] || "#ffffff" };
+}
+function distText(s) {
+  return s.distLy < 0.01 ? "约 1.5 亿千米（8.3 光分）" : s.distLy + " 光年";
+}
+function searchStars(kw) {
+  kw = (kw || "").trim().toLowerCase();
+  if (!kw) return [];
+  return STARS.filter(function (s) {
+    return s.name.toLowerCase().indexOf(kw) >= 0 || s.cn.indexOf(kw) >= 0
+        || s.constellation.toLowerCase().indexOf(kw) >= 0 || s.cnConst.indexOf(kw) >= 0;
+  });
+}
+function byConstellation(kw) {
+  kw = (kw || "").trim().toLowerCase();
+  return STARS.filter(function (s) {
+    return s.cnConst.toLowerCase().indexOf(kw) >= 0 || s.constellation.toLowerCase().indexOf(kw) >= 0;
+  });
+}
+function bySeason(se) { return STARS.filter(function (s) { return s.season === se; }); }
+function rankedStars(n) {
+  return STARS.filter(function (s) { return !s.isSun; })
+              .sort(function (a, b) { return a.mag - b.mag; })
+              .slice(0, n);
+}
+function allStars() { return STARS.slice().sort(function (a, b) { return a.mag - b.mag; }); }
+function constellations() {
+  var m = {};
+  STARS.forEach(function (s) { m[s.cnConst] = 1; });
+  return Object.keys(m);
+}
+function seasons() {
+  var m = {};
+  STARS.forEach(function (s) { m[s.season] = 1; });
+  return Object.keys(m);
+}
+
+// ================= 天文计算（定位 + 时间 -> 每颗星的高度角/方位角） =================
+function nowJD() { return Date.now() / 86400000 + 2440587.5; }
+
+function gmstDeg(jd) {
+  var d = jd - 2451545.0;
+  return ((280.46061837 + 360.98564736629 * d) % 360 + 360) % 360;
+}
+
+function normalizeAz(a) {
+  a = a % 360;
+  if (a > 180) a -= 360;
+  if (a <= -180) a += 360;
+  return a;
+}
+
+function starAltAz(s, latDeg, lonDeg, jd) {
+  var raDeg = s.raH * 15;
+  var lst = ((gmstDeg(jd) + lonDeg) % 360 + 360) % 360;
+  var H = (lst - raDeg) * Math.PI / 180;
+  var ph = latDeg * Math.PI / 180;
+  var de = s.dec * Math.PI / 180;
+  var sinAlt = Math.sin(ph) * Math.sin(de) + Math.cos(ph) * Math.cos(de) * Math.cos(H);
+  var alt = Math.asin(Math.max(-1, Math.min(1, sinAlt))) * 180 / Math.PI;
+  var az = (Math.atan2(Math.sin(H), Math.cos(H) * Math.sin(ph) - Math.tan(de) * Math.cos(ph)) + Math.PI) * 180 / Math.PI;
+  az = ((az % 360) + 360) % 360;
+  return { alt: alt, az: az };
+}
+</script>
+<script id="app-ui">
+// ================= 界面渲染 =================
+var content = document.getElementById("content");
+var tabs = document.querySelectorAll(".tab");
+var currentView = "search";
+var currentList = [];
+var rankN = 10;
+
+var skyState = {
+  az0: 180, alt0: 35, fovH: 60, roll: 0,
+  follow: false, loc: null, locTried: false,
+  showOnlyVisible: true, cssW: 600, cssH: 380
+};
+var skyPts = [];
+var arStream = null;
+var gotAbs = false;
+var dragging = false, dragMoved = false, lastPX = 0, lastPY = 0;
+
+function starCard(s) {
+  var c = colorOf(s.spectral);
+  var h = '<div class="card"><div class="top">';
+  h += '<span class="dot" style="background:' + c.hex + ';color:' + c.hex + '"></span>';
+  h += '<div><h2>' + s.cn + '</h2><span class="en">' + s.name + '</span>';
+  h += '<div class="meta">';
+  h += '<span class="tag">星座：' + s.cnConst + '</span>';
+  h += '<span class="tag">星等：' + s.mag + '</span>';
+  h += '<span class="tag">颜色：' + c.name + '</span>';
+  h += '<span class="tag">季节：' + s.season + '</span>';
+  h += '</div></div></div>';
+  h += '<p class="desc">距离：' + distText(s) + ' ｜ 光谱型：' + s.spectral + '</p>';
+  h += '<p class="desc">' + s.desc + '</p>';
+  h += '</div>';
+  return h;
+}
+
+function rowHtml(s, i) {
+  var cls = i === 0 ? " top1" : i === 1 ? " top2" : i === 2 ? " top3" : "";
+  return '<div class="row" data-i="' + i + '">'
+    + '<span class="rank' + cls + '">' + (i + 1) + '</span>'
+    + '<b>' + s.cn + '</b> <span class="en">' + s.name + '</span>'
+    + '<div style="color:#9aa3c7;font-size:13px;margin-top:4px">'
+    + s.cnConst + ' ｜ 星等 ' + s.mag + ' ｜ ' + distText(s) + '</div></div>';
+}
+
+function emptyMsg(msg) { return '<div class="hint">' + msg + '</div>'; }
+
+function showDetail(s) {
+  content.innerHTML = '<button class="back" id="backBtn">← 返回</button>' + starCard(s);
+  document.getElementById("backBtn").addEventListener("click", renderView);
+}
+
+function bindRows() {
+  content.querySelectorAll(".row").forEach(function (row) {
+    row.addEventListener("click", function () {
+      showDetail(currentList[parseInt(row.getAttribute("data-i"), 10)]);
+    });
+  });
+}
+
+function renderSearch() {
+  content.innerHTML = '<div class="search-box"><input type="text" id="kw" placeholder="输入关键词：天狼 / Sirius / 猎户…"></div><div id="results"></div>';
+  var input = document.getElementById("kw");
+  var results = document.getElementById("results");
+  function update() {
+    var list = searchStars(input.value);
+    results.innerHTML = list.length ? list.map(starCard).join("") : emptyMsg("没找到相关星星，换个关键词试试～");
+  }
+  input.addEventListener("input", update);
+  input.focus();
+  update();
+}
+
+function renderConstellation() {
+  content.innerHTML = '<div class="chips">' + constellations().map(function (c) {
+    return '<button class="chip">' + c + '</button>';
+  }).join("") + '</div><div id="res"></div>';
+  var res = document.getElementById("res");
+  res.innerHTML = emptyMsg("点击上面的星座，查看里面的星星");
+  content.querySelectorAll(".chip").forEach(function (chip) {
+    chip.addEventListener("click", function () {
+      content.querySelectorAll(".chip").forEach(function (c) { c.classList.remove("active"); });
+      chip.classList.add("active");
+      res.innerHTML = byConstellation(chip.textContent).map(starCard).join("");
+    });
+  });
+}
+
+function renderSeason() {
+  content.innerHTML = '<div class="chips">' + seasons().map(function (se) {
+    return '<button class="chip">' + se + '</button>';
+  }).join("") + '</div><div id="res"></div>';
+  var res = document.getElementById("res");
+  res.innerHTML = emptyMsg("点击上面的季节，查看适合观测的星星");
+  content.querySelectorAll(".chip").forEach(function (chip) {
+    chip.addEventListener("click", function () {
+      content.querySelectorAll(".chip").forEach(function (c) { c.classList.remove("active"); });
+      chip.classList.add("active");
+      res.innerHTML = bySeason(chip.textContent).map(starCard).join("");
+    });
+  });
+}
+
+function renderRank() {
+  content.innerHTML = '<div class="chips">' + [5, 10, 20, 30].map(function (n) {
+    return '<button class="chip' + (n === rankN ? " active" : "") + '" data-n="' + n + '">Top ' + n + '</button>';
+  }).join("") + '</div><div id="res"></div>';
+  var res = document.getElementById("res");
+  content.querySelectorAll(".chip").forEach(function (chip) {
+    chip.addEventListener("click", function () {
+      rankN = parseInt(chip.getAttribute("data-n"), 10);
+      renderRank();
+    });
+  });
+  currentList = rankedStars(rankN);
+  res.innerHTML = currentList.map(rowHtml).join("");
+  bindRows();
+}
+
+function renderAll() {
+  currentList = allStars();
+  content.innerHTML = '<div class="hint">共 ' + currentList.length + ' 颗（按亮度排序，点击查看详情）</div><div id="res"></div>';
+  document.getElementById("res").innerHTML = currentList.map(rowHtml).join("");
+  bindRows();
+}
+
+function renderMap() {
+  content.innerHTML = '<canvas id="map"></canvas>'
+    + '<div class="legend">全天星图（赤经×赤纬）· 圆点越大越亮 · 点击圆点查看详情</div>'
+    + '<div id="mapDetail"></div>';
+  var canvas = document.getElementById("map");
+  var w = Math.min(720, Math.max(320, content.clientWidth));
+  var h = Math.round(w * 0.55);
+  var dpr = window.devicePixelRatio || 1;
+  canvas.style.width = w + "px";
+  canvas.style.height = h + "px";
+  canvas.style.margin = "0 auto";
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  var ctx = canvas.getContext("2d");
+  ctx.scale(dpr, dpr);
+  ctx.fillStyle = "#0b0f2b";
+  ctx.fillRect(0, 0, w, h);
+
+  ctx.strokeStyle = "rgba(140,160,255,0.12)";
+  ctx.lineWidth = 1;
+  [-60, -30, 0, 30, 60].forEach(function (d) {
+    var y = (90 - d) / 180 * h;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+  });
+  [0, 6, 12, 18, 24].forEach(function (ra) {
+    var x = w - (ra / 24) * w;
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+  });
+  ctx.fillStyle = "rgba(200,210,255,0.55)";
+  ctx.font = "10px sans-serif";
+  ctx.fillText("赤经 12h", w / 2 - 16, 12);
+  ctx.fillText("24h", 6, 12);
+  ctx.fillText("赤纬 0°", 6, h / 2 + 12);
+
+  var pts = [];
+  STARS.forEach(function (s) {
+    if (s.raH === null || s.raH === undefined) return;
+    var x = w - (s.raH / 24) * w;
+    var y = (90 - s.dec) / 180 * h;
+    var r = Math.max(3, Math.min(15, (3 - s.mag) * 2.4));
+    var hex = colorOf(s.spectral).hex;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fillStyle = hex;
+    ctx.shadowColor = hex;
+    ctx.shadowBlur = 8;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = "rgba(255,255,255,0.3)";
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+    pts.push({ s: s, x: x, y: y, r: r });
+  });
+
+  rankedStars(12).forEach(function (s) {
+    var p = null;
+    for (var i = 0; i < pts.length; i++) { if (pts[i].s.name === s.name) { p = pts[i]; break; } }
+    if (!p) return;
+    ctx.fillStyle = "#cdd4f5";
+    ctx.font = "10px sans-serif";
+    ctx.fillText(s.cn, p.x + p.r + 2, p.y - p.r - 2);
+  });
+
+  canvas.onclick = function (e) {
+    var rect = canvas.getBoundingClientRect();
+    var px = (e.clientX - rect.left) * (w / rect.width);
+    var py = (e.clientY - rect.top) * (h / rect.height);
+    var best = null, bd = 1e9;
+    pts.forEach(function (p) {
+      var d = Math.sqrt((px - p.x) * (px - p.x) + (py - p.y) * (py - p.y));
+      if (d < bd) { bd = d; best = p; }
+    });
+    if (best && bd <= best.r + 12) {
+      document.getElementById("mapDetail").innerHTML = starCard(best.s);
+    }
+  };
+}
+
+// ================= 星空 360° 模式 =================
+function getSkyPos(s) {
+  if (skyState.loc) {
+    return starAltAz(s, skyState.loc.lat, skyState.loc.lon, nowJD());
+  }
+  return { alt: s.dec, az: ((s.raH * 15) % 360 + 360) % 360 };
+}
+
+function projectPoint(az, alt, w, h, fovH) {
+  var fovV = fovH * (h / w);
+  var dx = normalizeAz(az - skyState.az0) / fovH * w;
+  var dy = -(alt - skyState.alt0) / fovV * h;
+  return { x: w / 2 + dx, y: h / 2 + dy };
+}
+
+function renderSky() {
+  var canvas = document.getElementById("skyCanvas");
+  if (!canvas) return;
+  var w = skyState.cssW, h = skyState.cssH;
+  var dpr = window.devicePixelRatio || 1;
+  var ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+
+  var g = ctx.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, "#05081c");
+  g.addColorStop(0.6, "#0a0f2e");
+  g.addColorStop(1, "#101a38");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
+
+  ctx.save();
+  ctx.translate(w / 2, h / 2);
+  if (skyState.roll) ctx.rotate(-skyState.roll * Math.PI / 180);
+  ctx.translate(-w / 2, -h / 2);
+
+  var fovV = skyState.fovH * (h / w);
+  var hy = h / 2 + skyState.alt0 / fovV * h;
+  if (hy > -40 && hy < h + 40) {
+    ctx.strokeStyle = "rgba(140,220,140,0.4)";
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, hy); ctx.lineTo(w, hy); ctx.stroke();
+    ctx.fillStyle = "rgba(160,240,160,0.6)";
+    ctx.font = "11px sans-serif";
+    [["北", 0], ["东", 90], ["南", 180], ["西", 270]].forEach(function (p) {
+      var pt = projectPoint(p[1], 0, w, h, skyState.fovH);
+      if (pt.x > 12 && pt.x < w - 12 && hy > -10 && hy < h + 14) {
+        ctx.fillText(p[0], pt.x - 6, hy + 13);
+      }
+    });
+  }
+
+  var pts = [];
+  STARS.forEach(function (s) {
+    if (s.raH === null || s.raH === undefined) return;
+    var p = getSkyPos(s);
+    if (skyState.showOnlyVisible && p.alt < -1) return;
+    var pt = projectPoint(p.az, p.alt, w, h, skyState.fovH);
+    if (pt.x < -30 || pt.x > w + 30 || pt.y < -30 || pt.y > h + 30) return;
+    var r = Math.max(2, Math.min(12, (3 - s.mag) * 2.2));
+    var hex = colorOf(s.spectral).hex;
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, r, 0, Math.PI * 2);
+    ctx.fillStyle = hex;
+    ctx.shadowColor = hex;
+    ctx.shadowBlur = 6;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    if (s.mag < 1.5) {
+      ctx.fillStyle = "#cdd4f5";
+      ctx.font = "10px sans-serif";
+      ctx.fillText(s.cn, pt.x + r + 1, pt.y - r - 1);
+    }
+    pts.push({ s: s, x: pt.x, y: pt.y, r: r });
+  });
+  ctx.restore();
+  skyPts = pts;
+  updateSkyInfo();
+}
+
+function updateSkyInfo() {
+  var el = document.getElementById("skyInfo");
+  if (!el) return;
+  var t = new Date();
+  var lst = skyState.loc ? (gmstDeg(nowJD()) + skyState.loc.lon) % 360 : gmstDeg(nowJD());
+  var txt = t.toLocaleTimeString() + " ｜ 恒星时 " + lst.toFixed(1) + "°";
+  if (skyState.loc) {
+    txt += " ｜ " + skyState.loc.lat.toFixed(1) + "°N, " + skyState.loc.lon.toFixed(1) + "°E";
+    if (skyState.loc.fallback) txt += "（默认）";
+  } else {
+    txt += " ｜ 未定位，先按赤道坐标显示";
+  }
+  txt += " ｜ 视角：方位 " + Math.round(skyState.az0) + "° 高度 " + Math.round(skyState.alt0) + "°";
+  var vis = STARS.filter(function (s) {
+    return s.raH !== null && getSkyPos(s).alt > -1;
+  }).length;
+  txt += " ｜ 可见 " + vis + " 颗";
+  el.textContent = "拖动画面转动视角 · 点击星星看详情 ｜ " + txt;
+}
+
+function skyHint(msg) {
+  var el = document.getElementById("skyInfo");
+  if (el) el.textContent = msg;
+}
+
+function setFollow(on) {
+  skyState.follow = on;
+  var chip = document.getElementById("skyFollow");
+  if (chip) {
+    chip.textContent = on ? "🧭 跟随中…" : "🧭 跟随手机方向";
+    chip.classList.toggle("active", on);
+  }
+  if (!on) return;
+  if (typeof DeviceOrientationEvent !== "undefined"
+      && typeof DeviceOrientationEvent.requestPermission === "function") {
+    DeviceOrientationEvent.requestPermission().then(function (r) {
+      if (r === "granted") {
+        skyHint("已开启！举起手机朝天空转动试试");
+      } else {
+        setFollow(false);
+        skyHint("需要方向权限才能跟随，或直接用拖动浏览");
+      }
+    }).catch(function () {
+      setFollow(false);
+      skyHint("方向权限被拒绝，用拖动浏览吧");
+    });
+  } else if (typeof window.DeviceOrientationEvent === "undefined") {
+    setFollow(false);
+    skyHint("此设备不支持方向感应，试试拖动浏览（电脑上按住鼠标拖）");
+  } else {
+    skyHint("已开启！举起手机朝天空转动试试 🧭");
+  }
+}
+
+function tryLocation() {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      skyState.loc = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+      var chip = document.getElementById("skyLoc");
+      if (chip) chip.textContent = "📍 已定位";
+      if (currentView === "sky") renderSky();
+    }, function () {
+      fallbackLoc();
+    }, { timeout: 8000, maximumAge: 300000 });
+  } else {
+    fallbackLoc();
+  }
+}
+
+function fallbackLoc() {
+  skyState.loc = { lat: 22.3, lon: 114.2, fallback: true };
+  var chip = document.getElementById("skyLoc");
+  if (chip) chip.textContent = "📍 默认(香港)";
+  if (currentView === "sky") renderSky();
+}
+
+function renderSkyTab() {
+  content.innerHTML = '<div class="chips">'
+    + '<button class="chip" id="skyFollow">🧭 跟随手机方向</button>'
+    + '<button class="chip" id="skyLoc">📍 定位</button>'
+    + '<button class="chip' + (skyState.showOnlyVisible ? " active" : "") + '" id="skyVis">✨ 只看可见</button>'
+    + '<button class="chip" id="skyIn">＋ 拉近</button>'
+    + '<button class="chip" id="skyOut">－ 拉远</button>'
+    + '<button class="chip" id="skyAr">📷 AR实景</button>'
+    + '</div>'
+    + '<canvas id="skyCanvas"></canvas>'
+    + '<div class="legend" id="skyInfo"></div>'
+    + '<div id="skyDetail"></div>';
+  var canvas = document.getElementById("skyCanvas");
+  var cssW = Math.min(720, Math.max(320, content.clientWidth));
+  var cssH = Math.round(Math.min(520, Math.max(280, window.innerHeight * 0.5)));
+  var dpr = window.devicePixelRatio || 1;
+  canvas.style.width = cssW + "px";
+  canvas.style.height = cssH + "px";
+  canvas.style.margin = "0 auto";
+  canvas.width = cssW * dpr;
+  canvas.height = cssH * dpr;
+  skyState.cssW = cssW;
+  skyState.cssH = cssH;
+
+  document.getElementById("skyFollow").addEventListener("click", function () {
+    setFollow(!skyState.follow);
+  });
+  document.getElementById("skyLoc").addEventListener("click", function () {
+    skyHint("正在获取位置…（允许浏览器权限）");
+    tryLocation();
+  });
+  document.getElementById("skyVis").addEventListener("click", function () {
+    skyState.showOnlyVisible = !skyState.showOnlyVisible;
+    renderSkyTab();
+  });
+  document.getElementById("skyIn").addEventListener("click", function () {
+    skyState.fovH = Math.max(40, skyState.fovH - 10);
+    renderSky();
+  });
+  document.getElementById("skyOut").addEventListener("click", function () {
+    skyState.fovH = Math.min(100, skyState.fovH + 10);
+    renderSky();
+  });
+  document.getElementById("skyAr").addEventListener("click", enterAR);
+
+  canvas.addEventListener("pointerdown", function (e) {
+    dragging = true; dragMoved = false;
+    lastPX = e.clientX; lastPY = e.clientY;
+    if (skyState.follow) setFollow(false);
+  });
+  canvas.addEventListener("click", function (e) {
+    if (dragMoved) return;
+    var rect = canvas.getBoundingClientRect();
+    var px = (e.clientX - rect.left) * (skyState.cssW / rect.width);
+    var py = (e.clientY - rect.top) * (skyState.cssH / rect.height);
+    var s = skyHit(px, py);
+    if (s) document.getElementById("skyDetail").innerHTML = starCard(s);
+  });
+
+  renderSky();
+  if (!skyState.locTried) {
+    skyState.locTried = true;
+    tryLocation();
+  }
+}
+
+function skyHit(px, py) {
+  var w = skyState.cssW, h = skyState.cssH;
+  var dx = px - w / 2, dy = py - h / 2;
+  var rad = skyState.roll * Math.PI / 180;
+  var rx = dx * Math.cos(rad) - dy * Math.sin(rad);
+  var ry = dx * Math.sin(rad) + dy * Math.cos(rad);
+  var qx = w / 2 + rx, qy = h / 2 + ry;
+  var best = null, bd = 1e9;
+  skyPts.forEach(function (p) {
+    var d = Math.sqrt((qx - p.x) * (qx - p.x) + (qy - p.y) * (qy - p.y));
+    if (d < bd) { bd = d; best = p; }
+  });
+  if (best && bd <= best.r + 12) return best.s;
+  return null;
+}
+
+// ================= AR 实景模式 =================
+function enterAR() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    alert("此浏览器不支持调用相机，请用 Chrome 或系统浏览器打开");
+    return;
+  }
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false })
+    .then(function (stream) {
+      arStream = stream;
+      content.innerHTML = '<div style="position:relative;border-radius:14px;overflow:hidden;border:1px solid #232a54;">'
+        + '<video id="arVideo" autoplay playsinline muted style="width:100%;display:block;background:#000;"></video>'
+        + '<canvas id="arOverlay" style="position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;"></canvas>'
+        + '<div style="position:absolute;left:10px;top:10px;display:flex;gap:8px;">'
+        + '<button id="arShot" style="opacity:.9">📸 拍照</button>'
+        + '<button id="arExit" style="opacity:.9;background:#232a54;color:#cdd4f5">✖ 退出</button>'
+        + '</div></div>'
+        + '<div class="legend">把手机朝向天空，星图实时跟随方向。📸 拍照会把星图合成进照片。AR 为方向叠加，不做照片识别。</div>'
+        + '<div id="arCapture"></div>';
+      var video = document.getElementById("arVideo");
+      video.srcObject = stream;
+      video.onloadedmetadata = function () { arLoop(); };
+      document.getElementById("arExit").addEventListener("click", exitAR);
+      document.getElementById("arShot").addEventListener("click", captureAR);
+      if (!skyState.follow) setFollow(true);
+    })
+    .catch(function () {
+      alert("无法打开相机：请检查浏览器相机权限。iOS 需要在 HTTPS 环境下才能使用相机。");
+    });
+}
+
+function exitAR() {
+  if (arStream) {
+    arStream.getTracks().forEach(function (t) { t.stop(); });
+    arStream = null;
+  }
+  renderView();
+}
+
+function arLoop() {
+  if (!arStream || currentView !== "sky") return;
+  drawAR();
+  requestAnimationFrame(arLoop);
+}
+
+function drawAR() {
+  var video = document.getElementById("arVideo"), ov = document.getElementById("arOverlay");
+  if (!video || !ov || !video.videoWidth) return;
+  var w = video.clientWidth, h = video.clientHeight;
+  if (!w || !h) return;
+  ov.width = w; ov.height = h;
+  var ctx = ov.getContext("2d");
+  ctx.clearRect(0, 0, w, h);
+  ctx.save();
+  ctx.translate(w / 2, h / 2);
+  ctx.rotate(-skyState.roll * Math.PI / 180);
+  ctx.translate(-w / 2, -h / 2);
+  STARS.forEach(function (s) {
+    if (s.raH === null) return;
+    var p = getSkyPos(s);
+    if (skyState.showOnlyVisible && p.alt < -1) return;
+    var pt = projectPoint(p.az, p.alt, w, h, 62);
+    if (pt.x < -20 || pt.x > w + 20 || pt.y < -20 || pt.y > h + 20) return;
+    var r = Math.max(2, Math.min(9, (3 - s.mag) * 1.8));
+    var hex = colorOf(s.spectral).hex;
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, r, 0, Math.PI * 2);
+    ctx.fillStyle = hex;
+    ctx.shadowColor = hex;
+    ctx.shadowBlur = 5;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    if (s.mag < 0.5) {
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "11px sans-serif";
+      ctx.fillText(s.cn, pt.x + r + 1, pt.y - r - 1);
+    }
+  });
+  ctx.restore();
+}
+
+function captureAR() {
+  var video = document.getElementById("arVideo");
+  if (!video || !video.videoWidth) { alert("相机还没准备好，稍等一秒再拍"); return; }
+  var vw = video.videoWidth, vh = video.videoHeight;
+  var c = document.createElement("canvas");
+  c.width = vw; c.height = vh;
+  var ctx = c.getContext("2d");
+  ctx.drawImage(video, 0, 0, vw, vh);
+  var k = vw / (video.clientWidth || 640);
+  ctx.save();
+  ctx.translate(vw / 2, vh / 2);
+  ctx.rotate(-skyState.roll * Math.PI / 180);
+  ctx.translate(-vw / 2, -vh / 2);
+  STARS.forEach(function (s) {
+    if (s.raH === null) return;
+    var p = getSkyPos(s);
+    if (skyState.showOnlyVisible && p.alt < -1) return;
+    var pt = projectPoint(p.az, p.alt, vw, vh, 62);
+    if (pt.x < -40 || pt.x > vw + 40 || pt.y < -40 || pt.y > vh + 40) return;
+    var r = Math.max(3, Math.min(16, (3 - s.mag) * 2.6)) * k * 0.9;
+    var hex = colorOf(s.spectral).hex;
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, r, 0, Math.PI * 2);
+    ctx.fillStyle = hex;
+    ctx.shadowColor = hex;
+    ctx.shadowBlur = 8;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    if (s.mag < 1.0) {
+      ctx.fillStyle = "rgba(255,255,255,.95)";
+      ctx.font = Math.round(14 * k) + "px sans-serif";
+      ctx.fillText(s.cn, pt.x + r + 2, pt.y - r - 2);
+    }
+  });
+  ctx.restore();
+  var url = c.toDataURL("image/png");
+  document.getElementById("arCapture").innerHTML =
+    '<div class="card"><p class="desc">📷 拍好啦！可以长按图片保存到相册，或点下面按钮下载：</p>'
+    + '<img src="' + url + '" style="width:100%;border-radius:10px;margin:8px 0;display:block;">'
+    + '<a href="' + url + '" download="星空照片.png"><button style="width:100%">⬇️ 下载照片</button></a></div>';
+}
+
+// ================= 手机方向感应 =================
+function applyOrientation(alpha, beta, gamma) {
+  if (!skyState.follow) return;
+  if (alpha === null || alpha === undefined) return;
+  skyState.az0 = ((alpha % 360) + 360) % 360;
+  var b = beta || 0;
+  skyState.alt0 = Math.max(-90, Math.min(90, 90 - b));
+  skyState.roll = gamma || 0;
+  if (currentView === "sky") renderSky();
+}
+function onAbsOrient(e) { gotAbs = true; applyOrientation(e.alpha, e.beta, e.gamma); }
+function onRelOrient(e) {
+  if (e.absolute === true) { gotAbs = true; applyOrientation(e.alpha, e.beta, e.gamma); return; }
+  if (gotAbs) return;
+  var a = (e.webkitCompassHeading !== undefined && e.webkitCompassHeading !== null) ? e.webkitCompassHeading : e.alpha;
+  applyOrientation(a, e.beta, e.gamma);
+}
+window.addEventListener("deviceorientationabsolute", onAbsOrient);
+window.addEventListener("deviceorientation", onRelOrient);
+
+document.addEventListener("pointermove", function (e) {
+  if (!dragging || currentView !== "sky") return;
+  var dx = e.clientX - lastPX, dy = e.clientY - lastPY;
+  lastPX = e.clientX; lastPY = e.clientY;
+  if (Math.abs(dx) + Math.abs(dy) > 4) dragMoved = true;
+  var w = skyState.cssW, h = skyState.cssH;
+  var fovV = skyState.fovH * (h / w);
+  skyState.az0 = (skyState.az0 - dx / w * skyState.fovH + 360) % 360;
+  skyState.alt0 = Math.max(-90, Math.min(90, skyState.alt0 + dy / h * fovV));
+  renderSky();
+});
+document.addEventListener("pointerup", function () { dragging = false; });
+
+// ================= 视图切换 =================
+function renderView() {
+  if (currentView === "search") renderSearch();
+  else if (currentView === "constellation") renderConstellation();
+  else if (currentView === "season") renderSeason();
+  else if (currentView === "rank") renderRank();
+  else if (currentView === "all") renderAll();
+  else if (currentView === "sky") renderSkyTab();
+  else if (currentView === "map") renderMap();
+}
+
+function setTab(view) {
+  if (view !== "sky" && arStream) {
+    arStream.getTracks().forEach(function (t) { t.stop(); });
+    arStream = null;
+  }
+  currentView = view;
+  tabs.forEach(function (t) {
+    t.classList.toggle("active", t.getAttribute("data-view") === view);
+  });
+  renderView();
+}
+
+tabs.forEach(function (t) {
+  t.addEventListener("click", function () { setTab(t.getAttribute("data-view")); });
+});
+
+document.getElementById("luckyBtn").addEventListener("click", function () {
+  setTab("search");
+  var s = STARS[Math.floor(Math.random() * STARS.length)];
+  document.getElementById("kw").value = s.cn;
+  document.getElementById("results").innerHTML = starCard(s);
+});
+
+renderView();
+</script>
+</body>
+</html>
